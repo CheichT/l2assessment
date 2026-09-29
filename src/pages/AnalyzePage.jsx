@@ -10,7 +10,6 @@ function AnalyzePage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    // Check for example message from home page
     const exampleMessage = localStorage.getItem('exampleMessage')
     if (exampleMessage) {
       setMessage(exampleMessage)
@@ -28,13 +27,8 @@ function AnalyzePage() {
     setResults(null)
     
     try {
-      // Run categorization (LLM call)
       const { category, reasoning } = await categorizeMessage(message)
-      
-      // Calculate urgency (rule-based)
       const urgency = calculateUrgency(message)
-      
-      // Get recommended action (template-based)
       const recommendedAction = getRecommendedAction(category)
       
       const analysisResult = {
@@ -48,7 +42,6 @@ function AnalyzePage() {
 
       setResults(analysisResult)
 
-      // Save to history
       const history = JSON.parse(localStorage.getItem('triageHistory') || '[]')
       history.push(analysisResult)
       localStorage.setItem('triageHistory', JSON.stringify(history))
@@ -65,16 +58,41 @@ function AnalyzePage() {
     setResults(null)
   }
 
+  const urgencyGuide = {
+    High: 'Requires immediate attention. Production issues, critical failures, or emergency requests.',
+    Medium: 'Should be addressed soon. Payment problems, account access issues, or important feature requests.',
+    Low: 'Can be handled in regular queue. General questions, feedback, or non-urgent inquiries.'
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
+        {/* Urgency Level Guide */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">Urgency Levels</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border-l-4 border-red-500 pl-4 py-2">
+              <div className="font-semibold text-red-700">🔴 High</div>
+              <p className="text-sm text-gray-600">{urgencyGuide.High}</p>
+            </div>
+            <div className="border-l-4 border-yellow-500 pl-4 py-2">
+              <div className="font-semibold text-yellow-700">🟡 Medium</div>
+              <p className="text-sm text-gray-600">{urgencyGuide.Medium}</p>
+            </div>
+            <div className="border-l-4 border-green-500 pl-4 py-2">
+              <div className="font-semibold text-green-700">🟢 Low</div>
+              <p className="text-sm text-gray-600">{urgencyGuide.Low}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Input Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Analyze Customer Message</h1>
           <p className="text-gray-600 mb-6">
             Paste a customer support message below to automatically categorize and prioritize.
           </p>
 
-          {/* Input Section */}
           <div className="mb-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Customer Message
@@ -83,7 +101,7 @@ function AnalyzePage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Paste customer message here..."
-              className="w-full border border-gray-300 rounded-lg p-3 h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-lg p-3 h-32 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
             />
             <div className="text-sm text-gray-500 mt-1">
@@ -91,7 +109,6 @@ function AnalyzePage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex space-x-3">
             <button
               onClick={handleAnalyze}
@@ -124,60 +141,64 @@ function AnalyzePage() {
           </div>
         </div>
 
-        {/* Results Section */}
+        {/* Results Section - No Scrolling Needed */}
         {results && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Analysis Results</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Category</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left: Category & Urgency (Visible) */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Results</h2>
+              
+              <div className="mb-4">
+                <div className="text-sm font-semibold text-gray-600 mb-2">Category</div>
                 <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-semibold">
                   {results.category}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Urgency Level</div>
-                <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                <div className="text-sm font-semibold text-gray-600 mb-2">Urgency Level</div>
+                <div className={`inline-block px-4 py-2 rounded-lg font-semibold text-lg ${
                   results.urgency === 'High' ? 'bg-red-200 text-red-900' :
                   results.urgency === 'Medium' ? 'bg-yellow-200 text-yellow-900' :
                   'bg-green-200 text-green-900'
                 }`}>
+                  {results.urgency === 'High' && '🔴 '}
+                  {results.urgency === 'Medium' && '🟡 '}
+                  {results.urgency === 'Low' && '🟢 '}
                   {results.urgency}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">Recommended Action</div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-gray-800">{results.recommendedAction}</p>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-semibold text-gray-600 mb-1">AI Reasoning</div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    <ReactMarkdown>
-                      {results.reasoning}
-                    </ReactMarkdown>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200">
+            {/* Right: Action & Reasoning */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Recommended Action</h3>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                <p className="text-gray-800 text-sm">{results.recommendedAction}</p>
+              </div>
+
               <button
                 onClick={() => {
                   const text = `Category: ${results.category}\nUrgency: ${results.urgency}\nRecommendation: ${results.recommendedAction}\n\nReasoning: ${results.reasoning}`
                   navigator.clipboard.writeText(text)
-                  alert('Results copied to clipboard!')
+                  alert('Results copied!')
                 }}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-semibold"
+                className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-semibold text-sm"
               >
                 📋 Copy Results
               </button>
+            </div>
+
+            {/* Full Width: Reasoning */}
+            <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">AI Reasoning</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="prose prose-sm max-w-none text-gray-700">
+                  <ReactMarkdown>
+                    {results.reasoning}
+                  </ReactMarkdown>
+                </div>
+              </div>
             </div>
           </div>
         )}
